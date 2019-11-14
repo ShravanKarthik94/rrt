@@ -7,6 +7,7 @@ import argparse
 from collections import defaultdict 
 import copy
 import math
+import random
 
 UR5_JOINT_INDICES = [0, 1, 2]
 stp_size = 0.005
@@ -72,7 +73,7 @@ def findPath(s, d, vertex, adjList, visited, currPath):
     visited[idx] = 1
     currPath.append(s)
     if d == s:
-        print(currPath)
+        #print(currPath)
         print("Found path!!")
         finalPath = copy.deepcopy(currPath)
         return
@@ -120,8 +121,8 @@ def rrt():
             path.append(tuple(newpt.reshape(1,-1)[0]))
             edges.append(((tuple(nearestPt.reshape(1,-1)[0])),tuple(newpt.reshape(1,-1)[0])))
             if np.linalg.norm(gp-newpt) < step:
-                print(newpt)
-                print(np.linalg.norm(gp-newpt))
+                #print(newpt)
+                #print(np.linalg.norm(gp-newpt))
                 break
         cntr = cntr + 1
     print("Done",cntr,len(path), len(edges))
@@ -199,11 +200,57 @@ def birrt():
     print("Done with everything")
 
 def birrt_smoothing():
-    ################################################################
-    # TODO your code to implement the birrt algorithm with smoothing
-    ################################################################
-    pass
-
+    rrt()
+    global finalPath
+    for outer in range(smoothCount):
+        start = 0
+        end = len(finalPath)
+        idx1 = 0
+        idx2 = 0
+        while (idx1 == idx2) and (idx1 - idx2 < 2):
+            idx1 = random.randint(start,end)
+            idx2 = random.randint(start, end)
+        numHops = abs(idx1 - idx2)
+        if idx1 > idx2:
+            temp = idx1 
+            idx1 = idx2
+            idx2 = temp
+        newPt = []
+        start = finalPath[idx1]
+        start = start[0]
+        end = finalPath[idx2]
+        end = end[1]
+        add = 0
+        while True:
+            pt2 = move_node(np.array(start), np.array(end))
+            if not collision_fn(pt2):
+                newPt.append(((tuple(start.reshape(1,-1)[0])),tuple(pt2.reshape(1,-1)[0])))
+                start = pt2
+            else:
+                break
+            if np.linalg.norm(np.array(end) - np.array(pt2)) < step:
+                newPt.append(((tuple(start.reshape(1,-1)[0])),tuple(end.reshape(1,-1)[0])))
+                add = 1
+                break
+        if add == 1:
+            newLen = len(newPt)
+            st = idx1
+            end = idx2 + 1
+            
+            if newLen < numHops:
+                print("Shorter path exists between", finalPath[idx1], finalPath[idx2])
+                print("Old len", numHops, "New len", newLen)
+                print("----")
+                print(finalPath[idx1:idx2])
+                print("----")
+                print(newPt)
+                print("----")
+                for x in range(newLen):
+                    ed = st+x
+                    finalPath[ed] = newPt[x]
+                ed = ed + 1
+                for x in range(ed, end):
+                    finalPath.remove(finalPath[ed])
 
 if __name__ == "__main__":
     args = get_args()
@@ -235,10 +282,13 @@ if __name__ == "__main__":
     goal_position = (0.35317009687423706, 0.35294029116630554, 0.7246701717376709)
     goal_marker = draw_sphere_marker(position=goal_position, radius=0.02, color=[1, 0, 0, 1])
     set_joint_positions(ur5, UR5_JOINT_INDICES, start_conf)
+    
+    #Parameters for the different methods
     step = 0.05
     biasPercentage = 5
     biasCount = int(100 / biasPercentage)
     finalPath = []
+    smoothCount = 100
 
     # place holder to save the solution path
     path_conf = None
@@ -262,7 +312,7 @@ if __name__ == "__main__":
         # using rrt
         rrt()
         path_conf = finalPath
-        print(path_conf)
+        #print(path_conf)
 
     if path_conf is None:
         # pause here
