@@ -4,10 +4,11 @@ import pybullet_data
 import numpy as np
 import time
 import argparse
-
+from collections import defaultdict 
+import copy
 
 UR5_JOINT_INDICES = [0, 1, 2]
-
+stp_size = 0.005
 
 def set_joint_positions(body, joints, values):
     assert len(joints) == len(values)
@@ -32,13 +33,88 @@ def get_args():
     args = parser.parse_args()
     return args
 
+def move_node(pt1, pt2):
+    ptdiff = pt2-pt1
+    norm = np.linalg.norm(ptdiff)
+    newadd = (step/norm) * ptdiff
+    newpt = pt1 + newadd
+    return newpt
+
+def find_nn(treeNodes, point):
+    treeLen = len(treeNodes)
+    minDist = 100000000000
+    finalNode = None
+    for x in range(treeLen):
+        dist = np.linalg.norm(point - np.array(treeNodes[x]))
+        if(dist < minDist):
+            finalNode = np.array(treeNodes[x])
+            minDist = dist
+    return finalNode
+
+def buildAdjList(edges, vertices):
+    adjMat = np.zeros((len(vertices), len(vertices)))
+    for x in range(len(edges)):
+        edge = edges[x]
+        #print(edge)
+        #print(vertices)
+        #print(x)
+        adjMat[vertices.index(edge[0]),vertices.index(edge[1])] = 1
+        adjMat[vertices.index(edge[1]),vertices.index(edge[0])] = 1
+    print("Built adj mat")
+    return adjMat
+
+def findPath(s, d, vertex, adjList, visited, currPath):
+    global finalPath
+    if len(finalPath) > 0:
+        return 
+    idx = vertex.index(s)
+    visited[idx] = 1
+    currPath.append(s)
+    if d == s:
+        print(currPath)
+        print("Found path!!")
+        finalPath = copy.deepcopy(currPath)
+        return
+    else:
+        for x in range(len(vertex)):
+            if adjList[idx,x] == 1 and visited[x] == 0:
+                findPath(vertex[x], d, vertex, adjList, visited, currPath)
+    currPath.pop()
+    visited[idx] = 0
 
 def rrt():
-    ###############################################
-    # TODO your code to implement the rrt algorithm
-    ###############################################
-    pass
+    path = []
+    edges = []
+    path.append(start_conf)
+    cntr = 1
+    gp = np.array(goal_conf)
+    while True:
+        xnew = np.random.uniform(low=-1, high=1)
+        ynew = np.random.uniform(low=-1, high=1)
+        znew = np.random.uniform(low=-1, high=1)
+        pt2 = np.array((xnew, ynew, znew))
+        if cntr % biasCount == 0:
+            pt2 = gp
+        nearestPt = find_nn(path, pt2)
+        if(np.linalg.norm(nearestPt - pt2) == 0.0):
+            continue
 
+        newpt = move_node(nearestPt, pt2)
+        
+        if not collision_fn(newpt):
+            path.append(tuple(newpt.reshape(1,-1)[0]))
+            edges.append(((tuple(nearestPt.reshape(1,-1)[0])),tuple(newpt.reshape(1,-1)[0])))
+            if np.linalg.norm(gp-newpt) < step:
+                print(newpt)
+                print(np.linalg.norm(gp-newpt))
+                break
+        cntr = cntr + 1
+    print("Done",cntr,len(path))
+    adjList = buildAdjList(edges, path)
+    visited = np.zeros(len(path))
+    currPath = []
+    findPath(start_conf, tuple(newpt.reshape(1,-1)[0]), path, adjList, visited, currPath)
+    print("Done with everything")
 
 def birrt():
     #################################################
@@ -84,6 +160,10 @@ if __name__ == "__main__":
     goal_position = (0.35317009687423706, 0.35294029116630554, 0.7246701717376709)
     goal_marker = draw_sphere_marker(position=goal_position, radius=0.02, color=[1, 0, 0, 1])
     set_joint_positions(ur5, UR5_JOINT_INDICES, start_conf)
+    step = 0.05
+    biasPercentage = 5
+    biasCount = int(100 / biasPercentage)
+    finalPath = []
 
     # place holder to save the solution path
     path_conf = None
@@ -103,11 +183,13 @@ if __name__ == "__main__":
             path_conf = birrt()
     else:
         # using rrt
-        path_conf = rrt()
+        rrt()
+        path_conf = finalPath
+        print(path_conf)
 
     if path_conf is None:
         # pause here
-        raw_input("no collision-free path is found within the time budget, finish?")
+        input("no collision-free path is found within the time budget, finish?")
     else:
         ###############################################
         # TODO your code to highlight the solution path
