@@ -202,14 +202,17 @@ def birrt():
 def birrt_smoothing():
     rrt()
     global finalPath
+    #print("len init is", len(finalPath))
     for outer in range(smoothCount):
         start = 0
-        end = len(finalPath)
+        end = len(finalPath) - 1
+        #print("len used is", end)
         idx1 = 0
         idx2 = 0
         while (idx1 == idx2) and (idx1 - idx2 < 2):
             idx1 = random.randint(start,end)
             idx2 = random.randint(start, end)
+        #print(idx1, "is idx1", idx2, "is idx2")
         numHops = abs(idx1 - idx2)
         if idx1 > idx2:
             temp = idx1 
@@ -217,19 +220,18 @@ def birrt_smoothing():
             idx2 = temp
         newPt = []
         start = finalPath[idx1]
-        start = start[0]
         end = finalPath[idx2]
-        end = end[1]
         add = 0
+        newPt.append(start)
         while True:
             pt2 = move_node(np.array(start), np.array(end))
             if not collision_fn(pt2):
-                newPt.append(((tuple(start.reshape(1,-1)[0])),tuple(pt2.reshape(1,-1)[0])))
-                start = pt2
+                newPt.append(tuple(pt2.reshape(1,-1)[0]))
+                start = tuple(pt2.reshape(1,-1)[0])
             else:
                 break
             if np.linalg.norm(np.array(end) - np.array(pt2)) < step:
-                newPt.append(((tuple(start.reshape(1,-1)[0])),tuple(end.reshape(1,-1)[0])))
+                newPt.append(end)
                 add = 1
                 break
         if add == 1:
@@ -238,13 +240,13 @@ def birrt_smoothing():
             end = idx2 + 1
             
             if newLen < numHops:
-                print("Shorter path exists between", finalPath[idx1], finalPath[idx2])
-                print("Old len", numHops, "New len", newLen)
-                print("----")
-                print(finalPath[idx1:idx2])
-                print("----")
-                print(newPt)
-                print("----")
+                #print("Shorter path exists between", finalPath[idx1], finalPath[idx2])
+                #print("Old len", numHops, "New len", newLen)
+                #print("----")
+                #print(finalPath[idx1:idx2])
+                #print("----")
+                #print(newPt)
+                #print("----")
                 for x in range(newLen):
                     ed = st+x
                     finalPath[ed] = newPt[x]
