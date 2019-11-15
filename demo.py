@@ -62,7 +62,7 @@ def buildAdjList(edges, vertices):
         #print(x)
         adjMat[vertices.index(edge[0]),vertices.index(edge[1])] = 1
         adjMat[vertices.index(edge[1]),vertices.index(edge[0])] = 1
-    print("Built adj mat")
+    #print("Built adj mat")
     return adjMat
 
 def findPath(s, d, vertex, adjList, visited, currPath):
@@ -95,13 +95,16 @@ def checkconnection(v1, v2):
             if(dist <= step):
                 n1 = v1[x]
                 n2 = v2[y]
+                #print("returning", n1, n2)
                 return n1, n2
     return n1, n2
 
 def rrt():
     path = []
     edges = []
+    worldcrd = []
     path.append(start_conf)
+    worldcrd.append(start_position)
     cntr = 1
     gp = np.array(goal_conf)
     while True:
@@ -116,10 +119,14 @@ def rrt():
             continue
 
         newpt = move_node(nearestPt, pt2)
+        idxmtch = path.index(tuple(nearestPt.reshape(1,-1)[0]))
         
         if not collision_fn(newpt):
             path.append(tuple(newpt.reshape(1,-1)[0]))
             edges.append(((tuple(nearestPt.reshape(1,-1)[0])),tuple(newpt.reshape(1,-1)[0])))
+            lsz = p.getLinkState(ur5, 3)[0]
+            worldcrd.append(lsz)
+            p.addUserDebugLine(lineFromXYZ = worldcrd[idxmtch], lineToXYZ=lsz, lineColorRGB=[0, 1, 0], lineWidth = 0.5, lifeTime =5)
             if np.linalg.norm(gp-newpt) < step:
                 #print(newpt)
                 #print(np.linalg.norm(gp-newpt))
@@ -137,6 +144,10 @@ def birrt():
     edges1 = []
     path2 = []
     edges2 = []
+    worldcrd1 = []
+    worldcrd2 = []
+    worldcrd1.append(start_position)
+    worldcrd2.append(goal_position)
     path1.append(start_conf)
     path2.append(goal_conf)
     cntr = 1
@@ -156,6 +167,8 @@ def birrt():
             pt2e = sp
         nearestPt = find_nn(path1, pt2s)
         nearestPt2 = find_nn(path2, pt2e)
+        idxmtch1 = path1.index(tuple(nearestPt.reshape(1,-1)[0]))
+        idxmtch2 = path2.index(tuple(nearestPt2.reshape(1,-1)[0]))
         addp1 = 1
         addp2 = 1
        
@@ -169,12 +182,18 @@ def birrt():
         if addp1==1 :
             newpt = move_node(nearestPt, pt2s)
             if not collision_fn(newpt):
+                lsz = p.getLinkState(ur5, 3)[0]
+                worldcrd1.append(lsz)
+                p.addUserDebugLine(lineFromXYZ = worldcrd1[idxmtch1], lineToXYZ=lsz, lineColorRGB=[0, 1, 0], lineWidth = 0.5, lifeTime =10)
                 path1.append(tuple(newpt.reshape(1,-1)[0]))
                 edges1.append(((tuple(nearestPt.reshape(1,-1)[0])),tuple(newpt.reshape(1,-1)[0])))
         
         if addp2==1 :
             newpt2 = move_node(nearestPt2, pt2e)
             if not collision_fn(newpt2):
+                lsz = p.getLinkState(ur5, 3)[0]
+                worldcrd2.append(lsz)
+                p.addUserDebugLine(lineFromXYZ = worldcrd2[idxmtch2], lineToXYZ=lsz, lineColorRGB=[0, 0, 1], lineWidth = 0.5, lifeTime =10)
                 path2.append(tuple(newpt2.reshape(1,-1)[0]))
                 edges2.append(((tuple(nearestPt2.reshape(1,-1)[0])),tuple(newpt2.reshape(1,-1)[0])))
         
@@ -183,6 +202,7 @@ def birrt():
             if nd1 == math.inf or nd2 == math.inf:
                 continue
             else:
+                #print("Adding another edge")
                 path1.append(nd2)
                 edges1.append((nd1,nd2))
                 for x in range(len(path2)):
@@ -200,7 +220,7 @@ def birrt():
     print("Done with everything")
 
 def birrt_smoothing():
-    rrt()
+    birrt()
     global finalPath
     #print("len init is", len(finalPath))
     for outer in range(smoothCount):
@@ -320,12 +340,24 @@ if __name__ == "__main__":
         # pause here
         input("no collision-free path is found within the time budget, finish?")
     else:
-        ###############################################
-        # TODO your code to highlight the solution path
-        ###############################################
-
         # execute the path
+        path_marker = []
+        #path_marker.append(addUserDebugLine(lineFromXYZ = path_conf[q], lineToXYZ=path_conf[(q+1)], lineColorRGB=[0, 1, 0], lineWidth = 1.5, lifeTime =0))
+        firstTime = 1
+        prev = (math.inf, math.inf, math.inf)
+        nulltemp = (math.inf, math.inf, math.inf)
         while True:
             for q in path_conf:
                 set_joint_positions(ur5, UR5_JOINT_INDICES, q)
-                time.sleep(0.5)
+                lsz = p.getLinkState(ur5, 3)[0]
+                    
+                if firstTime == 0:
+                    time.sleep(0.5)
+                else:
+                    if not (prev == nulltemp):
+                        #print(prev)
+                        #print(lsz)
+                        path_marker.append(p.addUserDebugLine(lineFromXYZ = prev, lineToXYZ=lsz, lineColorRGB=[1, 0, 0], lineWidth = 1.0, lifeTime =0))
+                    prev = lsz
+                    time.sleep(0.05)
+            firstTime = 0
