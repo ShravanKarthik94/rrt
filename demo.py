@@ -35,6 +35,14 @@ def get_args():
     args = parser.parse_args()
     return args
 
+'''
+    Function to move a distance 'step' from the point p1, along the line joining pt1 to pt2.
+    Parameters:
+        pt1 is coordinates of point in 3D space
+        pt2 is coordinates of point in 3D space
+    Return:
+        3D coordinates of point step distance from p1 along line joining pt1, pt2
+'''
 def move_node(pt1, pt2):
     ptdiff = pt2-pt1
     norm = np.linalg.norm(ptdiff)
@@ -42,6 +50,14 @@ def move_node(pt1, pt2):
     newpt = pt1 + newadd
     return newpt
 
+'''
+    Function to find the nearest node on the tree for a given point.
+    Parameters:
+        treeNodes is a list of points on the tree
+        point is a random point in 3D space for which the nearest point on the tree is to be determined
+    Return:
+        Node on the tree which is closest to 'point'
+'''
 def find_nn(treeNodes, point):
     treeLen = len(treeNodes)
     minDist = 100000000000
@@ -53,18 +69,35 @@ def find_nn(treeNodes, point):
             minDist = dist
     return finalNode
 
+'''
+    Function to build an adjacency matrix for a given list of vertices and edges
+    Parameters:
+        edges: List of edges
+        vertices: List of vertices
+    Return:
+        nxn matrix representing the adjacency matrix where n is the number of vertices
+'''
 def buildAdjList(edges, vertices):
     adjMat = np.zeros((len(vertices), len(vertices)))
     for x in range(len(edges)):
         edge = edges[x]
-        #print(edge)
-        #print(vertices)
-        #print(x)
         adjMat[vertices.index(edge[0]),vertices.index(edge[1])] = 1
         adjMat[vertices.index(edge[1]),vertices.index(edge[0])] = 1
-    #print("Built adj mat")
     return adjMat
 
+'''
+    Function to find path from start to destination given adjacencyMatrix
+    Parameters:
+        s: Coordinates Starting point
+        d: Destination point
+        vertex: List of coordinates of nodes on the tree
+        adjList: Adjacency matrix for the tree with nodes 'vertex'
+        visited: Array to keep track of nodes visited
+        currPath: List of coordinates of nodes visited in current path traversal
+    Return:
+        No ruturn, however, if path from source to destination is found, global object finalPath is updated
+        with the list of nodes to reach from start to destination
+'''
 def findPath(s, d, vertex, adjList, visited, currPath):
     global finalPath
     if len(finalPath) > 0:
@@ -73,8 +106,6 @@ def findPath(s, d, vertex, adjList, visited, currPath):
     visited[idx] = 1
     currPath.append(s)
     if d == s:
-        #print(currPath)
-        print("Found path!!")
         finalPath = copy.deepcopy(currPath)
         return
     else:
@@ -84,6 +115,18 @@ def findPath(s, d, vertex, adjList, visited, currPath):
     currPath.pop()
     visited[idx] = 0
 
+'''
+    Function to check if there is a common node between trees v1 and v2
+    Returns Inf, Inf if no such node exists
+    Common node is found if there is a point in v1, v2 which is at a distance <= step size from each-other
+
+    Parameters:
+        v1: List of nodes belonging to tree with root as starting point
+        v2: List of nodes belonging to tree with root as goal point
+    Return:
+        n1: Coordinates of node in v1 which is at a distance <= step size from 'n2'
+        n2: Coordinates of node in v1 which is at a distance <= step size from 'n1'
+'''
 def checkconnection(v1, v2):
     n1 = math.inf
     n2 = math.inf
@@ -95,10 +138,21 @@ def checkconnection(v1, v2):
             if(dist <= step):
                 n1 = v1[x]
                 n2 = v2[y]
-                #print("returning", n1, n2)
                 return n1, n2
     return n1, n2
 
+
+'''
+    Function to implement RRT
+    Parameters:
+        None, however, expects 'step', 'biasCount', 'startSearch' and 'endSearch' parameters to be setup
+        'step': Step-size by which the tree must grow
+        'biasCount': Number of iterations after which the random point selected is set as the destination
+        'startSearch': Lower limit indicating integer for which random point must be selected
+        'endSearch': Upper limit indicating integer for which random point must be selected
+    Return:
+        None, however, calls findPath which returns the path from start to destination
+'''
 def rrt():
     path = []
     edges = []
@@ -108,9 +162,9 @@ def rrt():
     cntr = 1
     gp = np.array(goal_conf)
     while True:
-        xnew = np.random.uniform(low=-1, high=1)
-        ynew = np.random.uniform(low=-1, high=1)
-        znew = np.random.uniform(low=-1, high=1)
+        xnew = np.random.uniform(low=startSearch, high=endSearch)
+        ynew = np.random.uniform(low=startSearch, high=endSearch)
+        znew = np.random.uniform(low=startSearch, high=endSearch)
         pt2 = np.array((xnew, ynew, znew))
         if cntr % biasCount == 0:
             pt2 = gp
@@ -139,6 +193,18 @@ def rrt():
     findPath(start_conf, tuple(newpt.reshape(1,-1)[0]), path, adjList, visited, currPath)
     print("Done with everything")
 
+'''
+    Function to implement Bi-RRT
+    Parameters:
+        None, however, expects 'step', 'biasCount', 'startSearch' and 'endSearch' parameters to be setup
+        'step': Step-size by which the tree must grow
+        'biasCount': The number of iterations after which the random point selected is set as the destination for tree
+            with root as starting point, and start for tree with root as destination point
+        'startSearch': Lower limit indicating integer for which random point must be selected
+        'endSearch': Upper limit indicating integer for which random point must be selected
+    Return:
+        None, however, calls findPath which returns the path from start to destination
+'''
 def birrt():
     path1 = []
     edges1 = []
@@ -154,12 +220,12 @@ def birrt():
     gp = np.array(goal_conf)
     sp = np.array(start_conf)
     while True:
-        xnew = np.random.uniform(low=-1, high=1)
-        ynew = np.random.uniform(low=-1, high=1)
-        znew = np.random.uniform(low=-1, high=1)
-        xnew2 = np.random.uniform(low=-1, high=1)
-        ynew2 = np.random.uniform(low=-1, high=1)
-        znew2 = np.random.uniform(low=-1, high=1)
+        xnew = np.random.uniform(low=startSearch, high=endSearch)
+        ynew = np.random.uniform(low=startSearch, high=endSearch)
+        znew = np.random.uniform(low=startSearch, high=endSearch)
+        xnew2 = np.random.uniform(low=startSearch, high=endSearch)
+        ynew2 = np.random.uniform(low=startSearch, high=endSearch)
+        znew2 = np.random.uniform(low=startSearch, high=endSearch)
         pt2s = np.array((xnew, ynew, znew))
         pt2e = np.array((xnew2, ynew2, znew2))
         if cntr % biasCount == 0:
@@ -202,7 +268,6 @@ def birrt():
             if nd1 == math.inf or nd2 == math.inf:
                 continue
             else:
-                #print("Adding another edge")
                 path1.append(nd2)
                 edges1.append((nd1,nd2))
                 for x in range(len(path2)):
@@ -212,27 +277,35 @@ def birrt():
                         edges1.append(edges2[x])
                 break
     
-    print("Done",cntr,len(path1))
     adjList = buildAdjList(edges1, path1)
     visited = np.zeros(len(path1))
     currPath = []
     findPath(start_conf, goal_conf, path1, adjList, visited, currPath)
-    print("Done with everything")
 
+'''
+    Function to implement Bi-RRT with smoothing of the path found using Bi-RRT
+    Parameters:
+        None, however, expects 'step', 'biasCount', 'startSearch' and 'endSearch' parameters to be setup
+        'step': Step-size by which the tree must grow
+        'biasCount': The number of iterations after which the random point selected is set as the destination for tree
+            with root as starting point, and start for tree with root as destination point
+        'startSearch': Lower limit indicating integer for which random point must be selected
+        'endSearch': Upper limit indicating integer for which random point must be selected
+    Return:
+        None, however, calls findPath which returns the path from start to destination. Subsequently, it update 'finalPath'
+            to produce a 'smoothed' route from source to destination for the path determined using bi-rrt
+'''
 def birrt_smoothing():
     birrt()
     global finalPath
-    #print("len init is", len(finalPath))
     for outer in range(smoothCount):
         start = 0
         end = len(finalPath) - 1
-        #print("len used is", end)
         idx1 = 0
         idx2 = 0
         while (idx1 == idx2) and (idx1 - idx2 < 2):
             idx1 = random.randint(start,end)
             idx2 = random.randint(start, end)
-        #print(idx1, "is idx1", idx2, "is idx2")
         numHops = abs(idx1 - idx2)
         if idx1 > idx2:
             temp = idx1 
@@ -260,13 +333,6 @@ def birrt_smoothing():
             end = idx2 + 1
             
             if newLen < numHops:
-                #print("Shorter path exists between", finalPath[idx1], finalPath[idx2])
-                #print("Old len", numHops, "New len", newLen)
-                #print("----")
-                #print(finalPath[idx1:idx2])
-                #print("----")
-                #print(newPt)
-                #print("----")
                 for x in range(newLen):
                     ed = st+x
                     finalPath[ed] = newPt[x]
@@ -308,9 +374,11 @@ if __name__ == "__main__":
     #Parameters for the different methods
     step = 0.05
     biasPercentage = 5
-    biasCount = int(100 / biasPercentage)
+    biasCount = int(100.0 / biasPercentage)
     finalPath = []
     smoothCount = 100
+    startSearch = -1
+    endSearch = 1
 
     # place holder to save the solution path
     path_conf = None
@@ -342,7 +410,6 @@ if __name__ == "__main__":
     else:
         # execute the path
         path_marker = []
-        #path_marker.append(addUserDebugLine(lineFromXYZ = path_conf[q], lineToXYZ=path_conf[(q+1)], lineColorRGB=[0, 1, 0], lineWidth = 1.5, lifeTime =0))
         firstTime = 1
         prev = (math.inf, math.inf, math.inf)
         nulltemp = (math.inf, math.inf, math.inf)
@@ -355,8 +422,6 @@ if __name__ == "__main__":
                     time.sleep(0.5)
                 else:
                     if not (prev == nulltemp):
-                        #print(prev)
-                        #print(lsz)
                         path_marker.append(p.addUserDebugLine(lineFromXYZ = prev, lineToXYZ=lsz, lineColorRGB=[1, 0, 0], lineWidth = 1.0, lifeTime =0))
                     prev = lsz
                     time.sleep(0.05)
