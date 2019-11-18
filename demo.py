@@ -180,7 +180,7 @@ def rrt():
             edges.append(((tuple(nearestPt.reshape(1,-1)[0])),tuple(newpt.reshape(1,-1)[0])))
             lsz = p.getLinkState(ur5, 3)[0]
             worldcrd.append(lsz)
-            p.addUserDebugLine(lineFromXYZ = worldcrd[idxmtch], lineToXYZ=lsz, lineColorRGB=[0, 1, 0], lineWidth = 0.5, lifeTime =5)
+            p.addUserDebugLine(lineFromXYZ = worldcrd[idxmtch], lineToXYZ=lsz, lineColorRGB=[0, 1, 0], lineWidth = 0.5, lifeTime =0)
             if np.linalg.norm(gp-newpt) < step:
                 #print(newpt)
                 #print(np.linalg.norm(gp-newpt))
@@ -250,7 +250,7 @@ def birrt():
             if not collision_fn(newpt):
                 lsz = p.getLinkState(ur5, 3)[0]
                 worldcrd1.append(lsz)
-                p.addUserDebugLine(lineFromXYZ = worldcrd1[idxmtch1], lineToXYZ=lsz, lineColorRGB=[0, 1, 0], lineWidth = 0.5, lifeTime =10)
+                p.addUserDebugLine(lineFromXYZ = worldcrd1[idxmtch1], lineToXYZ=lsz, lineColorRGB=[0, 1, 0], lineWidth = 0.5, lifeTime =0)
                 path1.append(tuple(newpt.reshape(1,-1)[0]))
                 edges1.append(((tuple(nearestPt.reshape(1,-1)[0])),tuple(newpt.reshape(1,-1)[0])))
         
@@ -259,7 +259,7 @@ def birrt():
             if not collision_fn(newpt2):
                 lsz = p.getLinkState(ur5, 3)[0]
                 worldcrd2.append(lsz)
-                p.addUserDebugLine(lineFromXYZ = worldcrd2[idxmtch2], lineToXYZ=lsz, lineColorRGB=[0, 0, 1], lineWidth = 0.5, lifeTime =10)
+                p.addUserDebugLine(lineFromXYZ = worldcrd2[idxmtch2], lineToXYZ=lsz, lineColorRGB=[0, 0, 1], lineWidth = 0.5, lifeTime =0)
                 path2.append(tuple(newpt2.reshape(1,-1)[0]))
                 edges2.append(((tuple(nearestPt2.reshape(1,-1)[0])),tuple(newpt2.reshape(1,-1)[0])))
         
@@ -423,6 +423,7 @@ if __name__ == "__main__":
                 else:
                     if not (prev == nulltemp):
                         path_marker.append(p.addUserDebugLine(lineFromXYZ = prev, lineToXYZ=lsz, lineColorRGB=[1, 0, 0], lineWidth = 1.0, lifeTime =0))
+                        draw_sphere_marker(lsz, 0.02, [1,0,0,1])
                     prev = lsz
                     time.sleep(0.05)
             firstTime = 0
